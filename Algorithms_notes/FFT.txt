@@ -1,0 +1,40 @@
+struct Complex
+{
+    double x, y;
+    Complex(double x = 0, double y = 0) : x(x), y(y) {}
+    Complex operator+(const Complex& t) const
+    {
+        return {x + t.x, y + t.y};
+    }
+    Complex operator-(const Complex& t) const
+    {
+        return {x - t.x, y - t.y};
+    }
+    Complex operator*(const Complex& t) const
+    {
+        return {x * t.x - y * t.y, x * t.y + y * t.x};
+    }
+};
+const double PI = acos(-1);
+
+void fft(Complex a[], int type)
+{
+    for (int i = 0; i < tot; i ++ )
+        if (i < rev[i])
+            swap(a[i], a[rev[i]]);
+    for (int mid = 1; mid < tot; mid <<= 1)
+    {
+        auto wn = Complex({cos(PI / mid), type * sin(PI / mid)});
+        for (int pos = 0, len = mid << 1; pos < tot; pos += len)
+        {
+            auto w = Complex({1, 0});
+            for (int j = 0; j < mid; j ++, w = w * wn)
+            {
+                auto x = a[pos + j];
+                auto y = w * a[pos + j + mid];
+                a[pos + j] = x + y;
+                a[pos + j + mid] = x - y;
+            }
+        }
+    }
+}

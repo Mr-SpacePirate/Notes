@@ -1,0 +1,183 @@
+class SplayTree {
+    public:
+        struct Node {
+            int fa, ch[2];
+            int cnt, siz;
+            int val;
+            bool used; 
+        };
+ 
+        int root, tot;
+        vector<Node> sp;
+ 
+        SplayTree() : tot(0), root(0) {}
+        SplayTree(int n) : tot(0), root(0) { sp.resize(n + 5); }
+         
+        void update(int x) { sp[x].siz = sp[sp[x].ch[0]].siz + sp[sp[x].ch[1]].siz + sp[x].cnt; }
+ 
+        bool get(int x) { return x == sp[sp[x].fa].ch[1]; }
+ 
+        void clear(int x) {sp[x].ch[0] = sp[x].ch[1] = sp[x].fa = sp[x].val = sp[x].siz = sp[x].cnt = 0; }
+ 
+        void rot(int x) {
+            int y = sp[x].fa, z = sp[y].fa, chk = get(x);
+            sp[y].ch[chk] = sp[x].ch[chk ^ 1];
+            if (sp[x].ch[chk ^ 1]) sp[sp[x].ch[chk ^ 1]].fa = y;
+            sp[x].ch[chk ^ 1] = y;
+            sp[y].fa = x;
+            sp[x].fa = z;
+            if (z) sp[z].ch[y == sp[z].ch[1]] = x;
+            update(y);
+            update(x);
+        }
+ 
+        void splay1(int x) {
+            while (sp[x].fa) rot(x);
+            root = x;
+        }
+ 
+        void splay2(int x) {
+            for (int y = sp[x].fa; y = sp[x].fa, y; rot(x)) {
+                if (sp[y].fa) rot(get(x) == get(y) ? y : x);
+            }
+            root = x;
+        }
+ 
+        void ins(int v) {
+            if (!root) {
+                root = ++tot;
+                sp[root].val = v;
+                sp[root].cnt = 1;
+                update(root);
+                //printf("build root %d\n", v);
+                return ;
+            }
+            int x = root, y = 0;
+            while (true) {
+                if (sp[x].val == v) {
+                    sp[x].cnt++;
+                    update(x);
+                    update(y);
+                    splay2(x);
+                    //printf("found %d root = %d\n", v, sp[root].val);
+                    break;
+                }
+                y = x;
+                x = sp[x].ch[sp[x].val < v];
+                if (!x) {
+                    ++tot;
+                    sp[tot].val = v;
+                    sp[tot].cnt = 1;
+                    sp[tot].fa = y;
+                    sp[y].ch[sp[y].val < v] = tot;
+                    update(tot);
+                    update(y);
+                    splay2(tot);
+                    //printf("new %d root = %d\n", v, sp[root].val);
+                    break;
+                }
+            }
+        }
+ 
+        int rk(int v) {
+            int res = 0, x = root;
+            while (true) {
+                if (v < sp[x].val) {
+                    x = sp[x].ch[0];
+                } else {
+                    res += sp[sp[x].ch[0]].siz;
+                    if (v == sp[x].val) {
+                        splay2(x);
+                        return res + 1;
+                    }
+                    res += sp[x].cnt;
+                    x = sp[x].ch[1];
+                }
+            }
+        }
+ 
+        int kth(int k) {
+            int x = root;
+            while (true) {
+                //printf("now at %d lc = %d rc = %d siz = %d\n", sp[x].val, sp[sp[x].ch[0]].val, sp[sp[x].ch[1]].val, sp[x].siz);
+                if (sp[x].ch[0] && k <= sp[sp[x].ch[0]].siz) {
+                    x = sp[x].ch[0];
+                } else {
+                    k -= sp[x].cnt + sp[sp[x].ch[0]].siz;
+                    if (k <= 0) {
+                        splay2(x);
+                        return sp[x].val;
+                    }
+                    x = sp[x].ch[1];
+                }
+            }
+        }
+ 
+        //查询根的前驱
+        int pre() {
+            int x = sp[root].ch[0];
+            if (!x) return x;
+            while (sp[x].ch[1]) x = sp[x].ch[1];
+            splay2(x);
+            return x;
+        }
+ 
+        //查询根的后继
+        int nxt() {
+            int x = sp[root].ch[1];
+            if (!x) return x;
+            while (sp[x].ch[0]) x = sp[x].ch[0];
+            splay2(x);
+            return x;
+        }
+ 
+        void del(int v) {
+            rk(v);
+            //cout << "here rk " << v << '\n';
+            //count(root);
+            if (sp[root].cnt > 1) {
+                sp[root].cnt--;
+                update(root);
+                return ;
+            }
+            if (!sp[root].ch[0] && sp[root].ch[1]) {
+                clear(root);
+                root = 0;
+                return ;
+            }
+            if (!sp[root].ch[0]) {
+                int x = root;
+                root = sp[root].ch[1];
+                sp[root].fa = 0;
+                clear(x);
+                return ;
+            }
+            if (!sp[root].ch[1]) {
+                int x = root;
+                root = sp[root].ch[0];
+                sp[root].fa = 0;
+                clear(x);
+                return ;
+            }
+            int x = root, a = pre();
+            sp[sp[x].ch[1]].fa = a;
+            sp[a].ch[1] = sp[x].ch[1];
+            clear(x);
+            update(root);
+        }
+ 
+        //调试查看
+        void count(int x) {
+            cout << "now at " << sp[x].val << " ";
+            cout << "cnt = " << sp[x].cnt << " siz = " << sp[x].siz << " ";
+            if (sp[x].ch[0]) {
+                cout << "lc = " << sp[sp[x].ch[0]].val << " ";
+            } else cout << "NULL ";
+            if (sp[x].ch[1]) {
+                cout << "rc = " << sp[sp[x].ch[1]].val << " ";
+            } else cout << "NULL ";
+            cout << '\n';
+            if (sp[x].ch[0]) count(sp[x].ch[0]);
+            if (sp[x].ch[1]) count(sp[x].ch[1]);
+        }
+};
